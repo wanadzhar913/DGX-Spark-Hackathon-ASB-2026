@@ -21,8 +21,8 @@ SimpleHTTPRequestHandler.extensions_map[".pptx"] = "application/vnd.openxmlforma
 
 # Configuration Defaults
 PORT = int(os.environ.get("PORT", 8080))
-NVIDIA_LLM_URL = os.environ.get("NVIDIA_LLM_URL", "http://localhost:8000")
-VLM_MODEL = os.environ.get("VLM_MODEL", "qwen2.5-vl")
+NVIDIA_LLM_URL = os.environ.get("NVIDIA_LLM_URL", "http://localhost:9001")
+VLM_MODEL = os.environ.get("VLM_MODEL", "omni")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 

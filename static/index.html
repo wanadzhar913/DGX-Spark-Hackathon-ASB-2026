@@ -821,16 +821,16 @@
 
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <label style="font-size: 11px; color: #fff;">NVIDIA Host URL (vLLM / Ollama):</label>
-        <input type="text" id="cfgNvidiaUrl" value="http://localhost:8000" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
+        <input type="text" id="cfgNvidiaUrl" value="http://localhost:9001" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
         
-        <label style="font-size: 11px; color: #fff;">Model Name (Auto-detected if left empty):</label>
-        <input type="text" id="cfgModel" value="" placeholder="e.g. Qwen2.5-VL / auto-detect" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
+        <label style="font-size: 11px; color: #fff;">Model Name:</label>
+        <input type="text" id="cfgModel" value="omni" placeholder="omni" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
       </div>
 
       <div style="background: #111a28; border: 1px solid #1e293b; padding: 10px; border-radius: 4px; font-size: 10px; color: var(--cyan-tech); line-height: 1.5;">
         <strong>💡 Connecting to your NVIDIA DGX (ghulam):</strong><br>
-        Open a new terminal tab on your MacBook and run:<br>
-        <code style="color: #fff; background: #000; padding: 2px 4px;">ssh -L 8000:localhost:8000 ghulam</code><br>
+        Run this command on your MacBook:<br>
+        <code style="color: #fff; background: #000; padding: 2px 4px;">ssh -i ~/Library/Application\ Support/NVIDIA/Sync/config/nvsync.key -L 9001:localhost:9001 admin@10.36.192.246</code><br>
         Then click <strong>"Save & Test Connection"</strong>!
       </div>
     </div>
