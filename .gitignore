@@ -4,9 +4,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 
-# Generated / local sample videos (drop your own clips in videos/)
-videos/*.mp4
-
 # OS / editor
 .DS_Store
 Thumbs.db
