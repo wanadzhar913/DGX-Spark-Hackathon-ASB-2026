@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NVIDIA EDVISION // AI Cluster Security Operations Center</title>
+  <style>
+    :root {
+      --bg-dark: #070a0f;
+      --bg-card: #0d121c;
+      --bg-card-hover: #131b29;
+      --border-color: #1e293b;
+      --nv-green: #76b900;
+      --nv-green-glow: rgba(118, 185, 0, 0.4);
+      --alert-red: #ff3344;
+      --alert-red-glow: rgba(255, 51, 68, 0.4);
+      --warn-yellow: #ffb703;
+      --cyan-tech: #00e5ff;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-mono: "SF Mono", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      font-size: 13px;
+    }
+
+    /* Scanlines effect */
+    body::after {
+      content: " ";
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Top Bar Header */
+    header {
+      background: #090e17;
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nv-badge {
+      background: var(--nv-green);
+      color: #000;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 3px;
+      letter-spacing: 1px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 10px var(--nv-green-glow);
+    }
+
+    .title-group h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+
+    .title-group p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: #172233;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #22324b;
+      border-color: var(--cyan-tech);
+    }
+
+    .btn-primary {
+      background: #153818;
+      border-color: var(--nv-green);
+      color: var(--nv-green);
+    }
+
+    .btn-primary:hover {
+      background: var(--nv-green);
+      color: #000;
+      box-shadow: 0 0 12px var(--nv-green-glow);
+    }
+
+    .btn-alert {
+      background: #3b1117;
+      border-color: var(--alert-red);
+      color: var(--alert-red);
+    }
+
+    .btn-alert:hover {
+      background: var(--alert-red);
+      color: #fff;
+      box-shadow: 0 0 12px var(--alert-red-glow);
+    }
+
+    /* Cluster Telemetry Strip */
+    .cluster-strip {
+      background: #0b1019;
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .telemetry-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    .card-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .meter-bar {
+      width: 100%;
+      height: 4px;
+      background: #1b263b;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .meter-fill {
+      height: 100%;
+      background: var(--nv-green);
+      box-shadow: 0 0 6px var(--nv-green-glow);
+      transition: width 0.4s ease;
+    }
+
+    /* Main Container Layout */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    @media (max-width: 1080px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* CCTV Camera Matrix */
+    .camera-grid-container {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .grid-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 4px;
+    }
+
+    .grid-header h2 {
+      font-size: 13px;
+      letter-spacing: 1px;
+      color: var(--cyan-tech);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .camera-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 1300px) {
+      .camera-matrix {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .camera-matrix {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Individual Camera Card */
+    .cam-card {
+      background: #000;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 16 / 10;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cam-card:hover {
+      border-color: var(--cyan-tech);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 229, 255, 0.15);
+    }
+
+    .cam-card.critical {
+      border-color: var(--alert-red);
+      animation: alertPulse 1.8s infinite;
+    }
+
+    .cam-card.warning {
+      border-color: var(--warn-yellow);
+    }
+
+    .cam-card.safe {
+      border-color: rgba(118, 185, 0, 0.4);
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 5px rgba(255, 51, 68, 0.3); }
+      50% { box-shadow: 0 0 18px rgba(255, 51, 68, 0.8), inset 0 0 10px rgba(255, 51, 68, 0.2); }
+    }
+
+    .cam-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* CCTV HUD Overlay */
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: radial-gradient(circle, transparent 65%, rgba(0,0,0,0.6) 100%);
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      text-shadow: 0 1px 3px #000;
+    }
+
+    .hud-cam-id {
+      background: rgba(0, 0, 0, 0.7);
+      border-left: 3px solid var(--nv-green);
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .cam-card.critical .hud-cam-id {
+      border-left-color: var(--alert-red);
+    }
+
+    .hud-cam-timestamp {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 6px;
+      font-size: 9px;
+      color: #cbd5e1;
+    }
+
+    .hud-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .hud-badge {
+      padding: 3px 6px;
+      border-radius: 2px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-critical {
+      background: rgba(255, 51, 68, 0.9);
+      color: #fff;
+      animation: blinkText 1s infinite;
+    }
+
+    .badge-warning {
+      background: rgba(255, 183, 3, 0.9);
+      color: #000;
+    }
+
+    .badge-safe {
+      background: rgba(118, 185, 0, 0.85);
+      color: #000;
+    }
+
+    @keyframes blinkText {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hud-gpu-tag {
+      font-size: 9px;
+      color: var(--nv-green);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 4px;
+    }
+
+    /* Live Bounding Box Overlay */
+    .hud-bbox {
+      position: absolute;
+      border: 2px solid var(--alert-red);
+      background: rgba(255, 51, 68, 0.15);
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+
+    .hud-bbox-label {
+      position: absolute;
+      top: -18px;
+      left: -2px;
+      background: var(--alert-red);
+      color: #fff;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 4px;
+      white-space: nowrap;
+    }
+
+    /* Right Sidebar: Threat Ticker */
+    .sidebar {
+      background: #090e17;
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .sidebar-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h3 {
+      font-size: 12px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--alert-red);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    .ticker-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ticker-item {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid var(--border-color);
+    }
+
+    .ticker-item:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--cyan-tech);
+      transform: translateX(2px);
+    }
+
+    .ticker-item.critical {
+      border-left-color: var(--alert-red);
+      background: rgba(255, 51, 68, 0.04);
+    }
+
+    .ticker-item.warning {
+      border-left-color: var(--warn-yellow);
+      background: rgba(255, 183, 3, 0.04);
+    }
+
+    .ticker-item.safe {
+      border-left-color: var(--nv-green);
+    }
+
+    .ticker-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .ticker-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+
+    .ticker-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .ticker-footer {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9px;
+      color: var(--cyan-tech);
+    }
+
+    /* Dialog Modal */
+    dialog {
+      background: #0f172a;
+      border: 1px solid var(--cyan-tech);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 24px;
+      max-width: 640px;
+      width: 90vw;
+      margin: auto;
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h3 {
+      font-size: 15px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-preview {
+      width: 100%;
+      height: 240px;
+      background: #000;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .modal-preview canvas, .modal-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .json-code-box {
+      background: #06090e;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 10px;
+      max-height: 140px;
+      overflow-y: auto;
+      color: #38bdf8;
+    }
+
+    .dispatch-alert-box {
+      background: #1e1b4b;
+      border: 1px solid #6366f1;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: none;
+      color: #c7d2fe;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+    }
+
+    /* Webcam Modal Styles */
+    #webcamVideo {
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="brand-section">
+      <div class="nv-badge">NVIDIA</div>
+      <div class="title-group">
+        <h1>EDGEVISION // AI CLUSTER SOC</h1>
+        <p>AUTONOMOUS PERIMETER INTELLIGENCE &bull; ZERO-CLOUD EGRESS &bull; 100% AIR-GAPPED</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a href="/presentation.html" target="_blank" class="btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: rgba(118, 185, 0, 0.15); border-color: var(--nv-green); color: var(--nv-green);">
+        📊 Pitch Deck
+      </a>
+      <button class="btn" id="clusterConfigBtn">
+        <span style="color: var(--nv-green);">●</span> NVIDIA Cluster Config
+      </button>
+      <button class="btn btn-alert" id="audioToggleBtn">
+        🔊 Audio Alarm: ON
+      </button>
+      <button class="btn btn-primary" id="openWebcamBtn">
+        📸 Test Live Camera / Upload
+      </button>
+    </div>
+  </header>
+
+  <!-- Cluster Telemetry Strip -->
+  <div class="cluster-strip">
+    <div class="telemetry-card">
+      <div class="card-top">
+        <span>GPU 0: NVIDIA A100 / RTX 4090</span>
+        <span id="gpu0Temp">48°C</span>
+      </div>
+      <div class="card-val">
+        <span id="gpu0Load">42.4%</span>
+        <span style="font-size: 10px; color: var(--text-muted);" id="gpu0Vram">8.12 / 24 GB</span>
+      </div>
+      <div class="meter-bar">
+        <div class="meter-fill" id="gpu0Bar" style="width: 42%;"></div>
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="card-top">
+        <span>GPU 1: NVIDIA A100 / RTX 4090</span>
+        <span id="gpu1Temp">46°C</span>
+      </div>
+      <div class="card-val">
+        <span id="gpu1Load">38.7%</span>
+        <span style="font-size: 10px; color: var(--text-muted);" id="gpu1Vram">7.84 / 24 GB</span>
+      </div>
+      <div class="meter-bar">
+        <div class="meter-fill" id="gpu1Bar" style="width: 38%;"></div>
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="card-top">
+        <span>CLUSTER THROUGHPUT</span>
+        <span style="color: var(--cyan-tech);">AIR-GAPPED</span>
+      </div>
+      <div class="card-val">
+        <span id="aggFps">180 FPS</span>
+        <span style="font-size: 10px; color: var(--text-muted);">6 Feeds Multiplex</span>
+      </div>
+      <div class="meter-bar">
+        <div class="meter-fill" style="width: 100%; background: var(--cyan-tech);"></div>
+      </div>
+    </div>
+
+    <div class="telemetry-card">
+      <div class="card-top">
+        <span>CLOUD COST SAVED</span>
+        <span style="color: var(--nv-green);">100% LOCAL</span>
+      </div>
+      <div class="card-val">
+        <span style="color: var(--nv-green);">$14,280</span>
+        <span style="font-size: 10px; color: var(--text-muted);">/ Month Saved</span>
+      </div>
+      <div class="meter-bar">
+        <div class="meter-fill" style="width: 100%; background: var(--nv-green);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Viewport -->
+  <div class="main-layout">
+    
+    <!-- Left: 6-Camera Grid -->
+    <div class="camera-grid-container">
+      <div class="grid-header">
+        <h2>🎥 LIVE CCTV MATRIX [NVIDIA CUDA ACCELERATED]</h2>
+        <span style="font-size: 11px; color: var(--text-muted);">SAMPLING: 1 FRAME / 1.5s &bull; LATENCY: 140ms</span>
+      </div>
+
+      <div class="camera-matrix" id="cameraGrid">
+        <!-- Generated dynamically via JS -->
+      </div>
+    </div>
+
+    <!-- Right: Real-time Threat Ticker -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3><span class="live-dot"></span> LIVE THREAT TICKER</h3>
+        <span style="font-size: 10px; color: var(--text-muted);" id="incidentCount">4 Incidents</span>
+      </div>
+      <div class="ticker-list" id="tickerList">
+        <!-- Real-time incidents injected here -->
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Incident Inspector Dialog -->
+  <dialog id="incidentModal">
+    <div class="modal-header">
+      <h3 id="modalTitle">🚨 INCIDENT INSPECTOR</h3>
+      <button class="modal-close" onclick="document.getElementById('incidentModal').close()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-preview">
+        <canvas id="modalCanvas"></canvas>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <strong id="modalViolationType" style="color: var(--alert-red); font-size: 13px;">PPE_VIOLATION</strong>
+          <span id="modalConfidence" style="color: var(--nv-green); font-size: 11px;">Confidence: 98.4%</span>
+        </div>
+        <p id="modalDescription" style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;"></p>
+        <p id="modalAction" style="font-size: 11px; color: var(--cyan-tech); line-height: 1.4;"></p>
+      </div>
+
+      <div class="dispatch-alert-box" id="dispatchSuccessBox">
+        ✅ <strong>DISPATCH CONFIRMED:</strong> Emergency alert ticket dispatched to Floor Supervisor on WhatsApp & Slack. Local klaxon triggered.
+      </div>
+
+      <div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">RAW NVIDIA VLM JSON INFERENCE:</div>
+        <pre class="json-code-box" id="modalJson"></pre>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('incidentModal').close()">Close</button>
+      <button class="btn btn-alert" id="dispatchActionBtn">🚨 Dispatch Alert via WhatsApp/Slack</button>
+    </div>
+  </dialog>
+
+  <!-- Live Camera & Upload Test Modal -->
+  <dialog id="webcamModal">
+    <div class="modal-header">
+      <h3>📸 LIVE NVIDIA INFERENCE TEST [JUDGE VERIFICATION]</h3>
+      <button class="modal-close" onclick="closeWebcamModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-preview" style="height: 280px;">
+        <video id="webcamVideo" autoplay playsinline muted></video>
+        <canvas id="webcamCaptureCanvas" style="display:none;"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="btn btn-primary" id="captureAnalyzeBtn" style="flex: 1; padding: 10px;">
+          ⚡ Snapshot & Analyze with NVIDIA VLM
+        </button>
+        <input type="file" id="imageUploadInput" accept="image/*" style="display:none;" />
+        <button class="btn" onclick="document.getElementById('imageUploadInput').click()">
+          📁 Upload Image Instead
+        </button>
+      </div>
+
+      <div id="liveResultBox" style="display:none; background: #06090e; border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-weight: 700;" id="liveResultType">INFERENCE RESULT</span>
+          <span style="font-size: 10px; color: var(--nv-green);" id="liveResultSource">NVIDIA CLUSTER</span>
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;" id="liveResultSummary"></p>
+        <pre class="json-code-box" id="liveResultJson"></pre>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeWebcamModal()">Done</button>
+    </div>
+  </dialog>
+
+  <!-- Cluster Config Modal -->
+  <dialog id="clusterModal">
+    <div class="modal-header">
+      <h3>⚙️ NVIDIA CLUSTER CONFIGURATION</h3>
+      <button class="modal-close" onclick="document.getElementById('clusterModal').close()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+        Connect EdgeVision to an NVIDIA cluster or remote GPU workstation running Ollama or vLLM.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 11px; color: #fff;">NVIDIA Host URL (vLLM / Ollama):</label>
+        <input type="text" id="cfgNvidiaUrl" value="http://localhost:8000" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
+        
+        <label style="font-size: 11px; color: #fff;">Model Name (Auto-detected if left empty):</label>
+        <input type="text" id="cfgModel" value="" placeholder="e.g. Qwen2.5-VL / auto-detect" style="background: #06090e; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;" />
+      </div>
+
+      <div style="background: #111a28; border: 1px solid #1e293b; padding: 10px; border-radius: 4px; font-size: 10px; color: var(--cyan-tech); line-height: 1.5;">
+        <strong>💡 Connecting to your NVIDIA DGX (ghulam):</strong><br>
+        Open a new terminal tab on your MacBook and run:<br>
+        <code style="color: #fff; background: #000; padding: 2px 4px;">ssh -L 8000:localhost:8000 ghulam</code><br>
+        Then click <strong>"Save & Test Connection"</strong>!
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('clusterModal').close()">Cancel</button>
+      <button class="btn btn-primary" id="saveConfigBtn">Save & Test Connection</button>
+    </div>
+  </dialog>
+
+  <script>
+    // Audio synthesizer for emergency warning beacon
+    let audioEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playBeep(freq = 880, duration = 0.15) {
+      if (!audioEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    document.getElementById('audioToggleBtn').addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioToggleBtn').textContent = audioEnabled ? '🔊 Audio Alarm: ON' : '🔇 Audio Alarm: MUTED';
+      if (audioEnabled) playBeep(920, 0.1);
+    });
+
+    // Global state
+    let cameraData = [];
+    let activeIncident = null;
+    let webcamStream = null;
+
+    // Procedural CCTV visual generator
+    function drawCCTVFrame(ctx, cam, width, height, t) {
+      ctx.fillStyle = '#080c14';
+      ctx.fillRect(0, 0, width, height);
+
+      // Floor grid perspective
+      ctx.strokeStyle = '#151e2d';
+      ctx.lineWidth = 1;
+      const horizon = height * 0.45;
+      
+      for (let x = -width; x <= width * 2; x += 30) {
+        ctx.beginPath();
+        ctx.moveTo(x + (t * 10) % 30, height);
+        ctx.lineTo(width * 0.5 + (x - width * 0.5) * 0.2, horizon);
+        ctx.stroke();
+      }
+
+      for (let y = horizon; y <= height; y += (y - horizon) * 0.35 + 8) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Draw custom scenario elements based on camera ID
+      if (cam.id === 'CAM-01') {
+        // Factory Floor: Overhead crane rail and worker without helmet
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(20, 10, width - 40, 14);
+        ctx.fillStyle = '#ffb703';
+        ctx.fillRect(width * 0.4 + Math.sin(t * 0.8) * 40, 8, 35, 18); // Moving crane trolley
+
+        // Worker silhouette
+        const wx = width * 0.5;
+        const wy = height * 0.58;
+        // Head (no helmet - red pulsing indicator)
+        ctx.fillStyle = '#f87171';
+        ctx.beginPath();
+        ctx.arc(wx, wy - 28, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(wx - 10, wy - 18, 20, 36);
+        // Legs
+        ctx.fillRect(wx - 9, wy + 18, 7, 24);
+        ctx.fillRect(wx + 2, wy + 18, 7, 24);
+
+      } else if (cam.id === 'CAM-02') {
+        // Server Room: Glowing server racks & hooded intruder
+        for (let i = 0; i < 4; i++) {
+          const rx = 20 + i * (width / 4);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(rx, 30, width / 5, height * 0.65);
+          // Blinking rack LEDs
+          for (let j = 0; j < 8; j++) {
+            ctx.fillStyle = (Math.sin(t * 3 + i * 2 + j) > 0) ? '#00e5ff' : '#1e293b';
+            ctx.fillRect(rx + 6, 40 + j * 14, 4, 3);
+          }
+        }
+        // Intruder
+        const ix = width * 0.55 + Math.sin(t * 0.5) * 15;
+        const iy = height * 0.62;
+        ctx.fillStyle = '#020617';
+        ctx.beginPath();
+        ctx.arc(ix, iy - 26, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(ix - 12, iy - 14, 24, 40);
+
+      } else if (cam.id === 'CAM-03') {
+        // Warehouse Aisle: High racks & expanding puddle
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(10, 20, 45, height * 0.7);
+        ctx.fillRect(width - 55, 20, 45, height * 0.7);
+        // Liquid puddle
+        ctx.fillStyle = 'rgba(255, 183, 3, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(width * 0.5, height * 0.72, 55 + Math.sin(t) * 4, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (cam.id === 'CAM-04') {
+        // Emergency Fire Exit: Red emergency door & stacked blocking boxes
+        ctx.fillStyle = '#450a0a';
+        ctx.fillRect(width * 0.35, 30, width * 0.3, height * 0.65);
+        ctx.fillStyle = '#22c55e';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText('EXIT ➔', width * 0.44, 44);
+
+        // Blocking boxes
+        ctx.fillStyle = '#854d0e';
+        ctx.fillRect(width * 0.32, height * 0.55, 40, 35);
+        ctx.fillRect(width * 0.45, height * 0.58, 48, 32);
+        ctx.fillRect(width * 0.38, height * 0.44, 35, 25);
+
+      } else if (cam.id === 'CAM-05') {
+        // Main Entrance: Turnstile and passing normal personnel
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(width * 0.25, height * 0.55, 12, 35);
+        ctx.fillRect(width * 0.55, height * 0.55, 12, 35);
+
+        // Person with green verified badge
+        const px = width * 0.4 + Math.sin(t * 0.6) * 20;
+        const py = height * 0.58;
+        ctx.fillStyle = '#76b900';
+        ctx.beginPath();
+        ctx.arc(px, py - 24, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(px - 9, py - 15, 18, 34);
+
+      } else {
+        // Cam 06: Loading Bay / Live Test Ingest
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(width * 0.2, height * 0.35, width * 0.6, height * 0.4);
+        ctx.fillStyle = '#76b900';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('BAY 3 // LIVE INGEST READY', width * 0.28, height * 0.55);
+      }
+
+      // Draw bounding box if hazard detected
+      if (cam.bounding_box) {
+        const bx = (cam.bounding_box.x / 100) * width;
+        const by = (cam.bounding_box.y / 100) * height;
+        const bw = (cam.bounding_box.width / 100) * width;
+        const bh = (cam.bounding_box.height / 100) * height;
+
+        ctx.strokeStyle = cam.severity === 'CRITICAL' ? '#ff3344' : '#ffb703';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        ctx.fillStyle = cam.severity === 'CRITICAL' ? '#ff3344' : '#ffb703';
+        ctx.fillRect(bx, by - 14, ctx.measureText(cam.bounding_box.label).width + 8, 14);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 8px monospace';
+        ctx.fillText(cam.bounding_box.label, bx + 4, by - 4);
+      }
+
+      // Digital Noise & Vignette
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+      for (let n = 0; n < 40; n++) {
+        ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
+      }
+    }
+
+    // Animation Loop for all 6 cameras
+    function renderCameras() {
+      const now = performance.now() / 1000;
+      cameraData.forEach(cam => {
+        const canvas = document.getElementById(`canvas-${cam.id}`);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        drawCCTVFrame(ctx, cam, canvas.width, canvas.height, now);
+      });
+      requestAnimationFrame(renderCameras);
+    }
+
+    const DEFAULT_CAMERAS = [
+      {
+        "id": "CAM-01",
+        "name": "Factory Floor - Assembly Zone A",
+        "zone": "Heavy Machinery Bay",
+        "gpu_assigned": "GPU 0 (NVIDIA RTX 4090 / A100)",
+        "status": "CRITICAL",
+        "fps": 30,
+        "scenario": "no_helmet",
+        "video_file": "videos/cam1_factory_helmet.mp4",
+        "description": "Worker operating near overhead crane pathway without mandatory hard hat (PPE violation).",
+        "hazard_detected": true,
+        "incident_type": "PPE_VIOLATION_HELMET",
+        "severity": "CRITICAL",
+        "confidence": 0.984,
+        "action_suggested": "Trigger local audible buzzer & dispatch Floor Supervisor immediately.",
+        "bounding_box": { "x": 35, "y": 25, "width": 30, "height": 60, "label": "No Helmet [98.4%]" }
+      },
+      {
+        "id": "CAM-02",
+        "name": "Server Vault - Restricted Core",
+        "zone": "Datacenter Level -2",
+        "gpu_assigned": "GPU 0 (NVIDIA RTX 4090 / A100)",
+        "status": "CRITICAL",
+        "fps": 30,
+        "scenario": "unauthorized_entry",
+        "video_file": "videos/cam2_server_intruder.mp4",
+        "description": "Unregistered personnel detected in High-Density Rack Corridor after hours (03:14 AM). No RFID badge detected.",
+        "hazard_detected": true,
+        "incident_type": "UNAUTHORIZED_PERIMETER_BREACH",
+        "severity": "CRITICAL",
+        "confidence": 0.971,
+        "action_suggested": "Lock down corridor blast door B-4 and alert Security Operations Chief.",
+        "bounding_box": { "x": 42, "y": 20, "width": 26, "height": 65, "label": "Unidentified Subject [97.1%]" }
+      },
+      {
+        "id": "CAM-03",
+        "name": "Warehouse - Logistics Aisle 4",
+        "zone": "High-Bay Racks",
+        "gpu_assigned": "GPU 0 (NVIDIA RTX 4090 / A100)",
+        "status": "WARNING",
+        "fps": 30,
+        "scenario": "slip_fall_hazard",
+        "video_file": "videos/cam3_warehouse_spill.mp4",
+        "description": "Liquid chemical spill puddle expanding near main forklift crossing zone. Slip/fall collision risk.",
+        "hazard_detected": true,
+        "incident_type": "SLIP_FALL_HAZARD",
+        "severity": "WARNING",
+        "confidence": 0.942,
+        "action_suggested": "Halt autonomous forklifts on Aisle 4; page hazmat sanitation team.",
+        "bounding_box": { "x": 28, "y": 60, "width": 45, "height": 28, "label": "Hazard Puddle [94.2%]" }
+      },
+      {
+        "id": "CAM-04",
+        "name": "Emergency Fire Exit B",
+        "zone": "South Wing Evacuation Route",
+        "gpu_assigned": "GPU 1 (NVIDIA RTX 4090 / A100)",
+        "status": "WARNING",
+        "fps": 30,
+        "scenario": "exit_blocked",
+        "video_file": "videos/cam4_exit_blocked.mp4",
+        "description": "Stacked pallet boxes completely obstructing designated emergency egress door width by > 75%.",
+        "hazard_detected": true,
+        "incident_type": "FIRE_SAFETY_EGRESS_BLOCKED",
+        "severity": "WARNING",
+        "confidence": 0.963,
+        "action_suggested": "Issue citation ticket to Warehouse Shift B; dispatch logistics clearing team.",
+        "bounding_box": { "x": 22, "y": 38, "width": 55, "height": 50, "label": "Obstruction Block [96.3%]" }
+      },
+      {
+        "id": "CAM-05",
+        "name": "Main Entrance & Lobby",
+        "zone": "Public Reception Barrier",
+        "gpu_assigned": "GPU 1 (NVIDIA RTX 4090 / A100)",
+        "status": "NORMAL",
+        "fps": 30,
+        "scenario": "normal_traffic",
+        "video_file": "videos/cam5_entrance_clear.mp4",
+        "description": "Normal pedestrian flow through turnstile barriers. All visitors badged. Perimeter secure.",
+        "hazard_detected": false,
+        "incident_type": "ALL_CLEAR",
+        "severity": "SAFE",
+        "confidence": 0.992,
+        "action_suggested": "No action required. Routine continuous monitoring.",
+        "bounding_box": null
+      },
+      {
+        "id": "CAM-06",
+        "name": "Chemical Storage Loading Dock",
+        "zone": "Bay 3 Ingress / Live Ingest",
+        "gpu_assigned": "GPU 1 (NVIDIA RTX 4090 / A100)",
+        "status": "NORMAL",
+        "fps": 30,
+        "scenario": "dock_ingress",
+        "video_file": "videos/cam6_loading_dock.mp4",
+        "description": "Delivery truck docked safely. Wheel chocks in place. Ready for live webcam/video test injection.",
+        "hazard_detected": false,
+        "incident_type": "ALL_CLEAR",
+        "severity": "SAFE",
+        "confidence": 0.988,
+        "action_suggested": "System active. Ready for live camera/upload stress test.",
+        "bounding_box": null
+      }
+    ];
+
+    function buildCameraDOM() {
+      const grid = document.getElementById('cameraGrid');
+      grid.innerHTML = '';
+
+      cameraData.forEach((cam) => {
+        const card = document.createElement('div');
+        const statusClass = cam.status.toLowerCase();
+        card.className = `cam-card ${statusClass}`;
+        card.id = `card-${cam.id}`;
+
+        const videoSrc = cam.video_file || `videos/cam${cam.id.replace('CAM-0', '')}.mp4`;
+
+        card.innerHTML = `
+          <video id="video-${cam.id}" class="cam-canvas" src="${videoSrc}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+          <canvas id="canvas-${cam.id}" class="cam-canvas" width="320" height="200" style="display:none;"></canvas>
+          <div class="cam-overlay">
+            <div class="hud-top">
+              <span class="hud-cam-id">${cam.id}: ${cam.name.split('-')[0]}</span>
+              <span class="hud-cam-timestamp" id="time-${cam.id}">--:--:--</span>
+            </div>
+            <div class="hud-bottom">
+              <span class="hud-badge badge-${statusClass}">
+                ${cam.status === 'CRITICAL' ? '⚠️ CRITICAL VIOLATION' : (cam.status === 'WARNING' ? '⚠️ WARNING' : 'SECURE')}
+              </span>
+              <span class="hud-gpu-tag">${cam.gpu_assigned.split(' ')[0]} ${cam.gpu_assigned.split(' ')[1]}</span>
+            </div>
+          </div>
+        `;
+
+        // If video fails to load, seamlessly reveal procedural canvas fallback
+        const vid = card.querySelector('video');
+        const cnv = card.querySelector('canvas');
+        vid.addEventListener('error', () => {
+          vid.style.display = 'none';
+          cnv.style.display = 'block';
+        });
+
+        card.addEventListener('click', () => openIncidentModal(cam));
+        grid.appendChild(card);
+      });
+
+      populateTicker();
+      renderCameras();
+      startClock();
+    }
+
+    // Initialize Camera UI
+    async function initCameras() {
+      try {
+        const res = await fetch('/api/incidents');
+        const data = await res.json();
+        cameraData = (data.cameras && data.cameras.length > 0) ? data.cameras : DEFAULT_CAMERAS;
+      } catch (err) {
+        console.warn('API offline, utilizing local embedded camera profile.');
+        cameraData = DEFAULT_CAMERAS;
+      }
+      buildCameraDOM();
+    }
+
+    // Start Live Clock
+    function startClock() {
+      setInterval(() => {
+        const timeStr = new Date().toTimeString().split(' ')[0];
+        cameraData.forEach(cam => {
+          const el = document.getElementById(`time-${cam.id}`);
+          if (el) el.textContent = `${timeStr}.${Math.floor(Math.random() * 90 + 10)}`;
+        });
+      }, 200);
+    }
+
+    // Populate Sidebar Threat Ticker
+    function populateTicker() {
+      const ticker = document.getElementById('tickerList');
+      ticker.innerHTML = '';
+      let count = 0;
+
+      cameraData.forEach(cam => {
+        if (cam.status !== 'NORMAL') count++;
+
+        const item = document.createElement('div');
+        const sClass = cam.status.toLowerCase();
+        item.className = `ticker-item ${sClass}`;
+        item.innerHTML = `
+          <div class="ticker-top">
+            <span>${cam.id} &bull; ${cam.zone}</span>
+            <span>${cam.status}</span>
+          </div>
+          <div class="ticker-title">${cam.incident_type.replace(/_/g, ' ')}</div>
+          <div class="ticker-desc">${cam.description}</div>
+          <div class="ticker-footer">
+            <span>AI CONFIDENCE: ${(cam.confidence * 100).toFixed(1)}%</span>
+            <span>CLICK TO INSPECT ➔</span>
+          </div>
+        `;
+        item.addEventListener('click', () => openIncidentModal(cam));
+        ticker.appendChild(item);
+      });
+
+      document.getElementById('incidentCount').textContent = `${count} Active Alerts`;
+    }
+
+    // Modal Inspection
+    function openIncidentModal(cam) {
+      activeIncident = cam;
+      const modal = document.getElementById('incidentModal');
+      document.getElementById('modalTitle').textContent = `🚨 INSPECTION: ${cam.id} - ${cam.name}`;
+      document.getElementById('modalViolationType').textContent = cam.incident_type.replace(/_/g, ' ');
+      document.getElementById('modalConfidence').textContent = `Confidence: ${(cam.confidence * 100).toFixed(1)}%`;
+      document.getElementById('modalDescription').textContent = cam.description;
+      document.getElementById('modalAction').textContent = `Suggested Action: ${cam.action_suggested}`;
+      document.getElementById('dispatchSuccessBox').style.display = 'none';
+
+      // Load video preview in modal with fallback
+      const modalPreview = document.querySelector('.modal-preview');
+      const videoSrc = cam.video_file || `videos/cam${cam.id.replace('CAM-0', '')}.mp4`;
+      modalPreview.innerHTML = `
+        <video id="modalVideo" src="${videoSrc}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:contain; display:block;"></video>
+        <canvas id="modalCanvas" style="display:none; width:100%; height:100%; object-fit:contain;"></canvas>
+      `;
+      const modalVid = document.getElementById('modalVideo');
+      const modalCnv = document.getElementById('modalCanvas');
+      modalVid.addEventListener('error', () => {
+        modalVid.style.display = 'none';
+        modalCnv.style.display = 'block';
+        modalCnv.width = 480;
+        modalCnv.height = 300;
+        const mCtx = modalCnv.getContext('2d');
+        drawCCTVFrame(mCtx, cam, 480, 300, 5.0);
+      });
+
+      document.getElementById('modalJson').textContent = JSON.stringify({
+        camera_id: cam.id,
+        zone: cam.zone,
+        hazard_detected: cam.hazard_detected,
+        incident_type: cam.incident_type,
+        severity: cam.severity,
+        confidence: cam.confidence,
+        summary: cam.description,
+        action: cam.action_suggested,
+        gpu_engine: cam.gpu_assigned
+      }, null, 2);
+
+      playBeep(1040, 0.12);
+      modal.showModal();
+    }
+
+    // Dispatch button
+    document.getElementById('dispatchActionBtn').addEventListener('click', async () => {
+      if (!activeIncident) return;
+      try {
+        const res = await fetch('/api/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ camera_id: activeIncident.id })
+        });
+        const data = await res.json();
+        document.getElementById('dispatchSuccessBox').style.display = 'block';
+        playBeep(1200, 0.2);
+      } catch (e) {
+        alert('Dispatched locally.');
+      }
+    });
+
+    // Telemetry Poller
+    async function updateTelemetry() {
+      try {
+        const res = await fetch('/api/cluster/status');
+        const data = await res.json();
+
+        if (data.gpus && data.gpus.length >= 2) {
+          const g0 = data.gpus[0];
+          const g1 = data.gpus[1];
+
+          document.getElementById('gpu0Load').textContent = `${g0.utilization_pct}%`;
+          document.getElementById('gpu0Bar').style.width = `${g0.utilization_pct}%`;
+          document.getElementById('gpu0Temp').textContent = `${g0.temperature_c}°C`;
+          document.getElementById('gpu0Vram').textContent = `${g0.vram_used_gb} / ${g0.vram_total_gb} GB`;
+
+          document.getElementById('gpu1Load').textContent = `${g1.utilization_pct}%`;
+          document.getElementById('gpu1Bar').style.width = `${g1.utilization_pct}%`;
+          document.getElementById('gpu1Temp').textContent = `${g1.temperature_c}°C`;
+          document.getElementById('gpu1Vram').textContent = `${g1.vram_used_gb} / ${g1.vram_total_gb} GB`;
+        }
+      } catch (e) {}
+    }
+    setInterval(updateTelemetry, 2500);
+
+    // Live Webcam & Testing
+    const openWebcamBtn = document.getElementById('openWebcamBtn');
+    const webcamModal = document.getElementById('webcamModal');
+    const webcamVideo = document.getElementById('webcamVideo');
+
+    openWebcamBtn.addEventListener('click', async () => {
+      webcamModal.showModal();
+      document.getElementById('liveResultBox').style.display = 'none';
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        webcamVideo.srcObject = webcamStream;
+      } catch (err) {
+        console.warn('Webcam unavailable, use upload button instead.');
+      }
+    });
+
+    function closeWebcamModal() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(t => t.stop());
+        webcamStream = null;
+      }
+      webcamModal.close();
+    }
+
+    // Capture Frame & Analyze
+    document.getElementById('captureAnalyzeBtn').addEventListener('click', async () => {
+      const captureCanvas = document.getElementById('webcamCaptureCanvas');
+      captureCanvas.width = 480;
+      captureCanvas.height = 360;
+      const ctx = captureCanvas.getContext('2d');
+      ctx.drawImage(webcamVideo, 0, 0, 480, 360);
+      const b64 = captureCanvas.toDataURL('image/jpeg', 0.85);
+
+      analyzeB64Image(b64);
+    });
+
+    // File Upload Handler
+    document.getElementById('imageUploadInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        analyzeB64Image(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    async function analyzeB64Image(b64) {
+      const resultBox = document.getElementById('liveResultBox');
+      resultBox.style.display = 'block';
+      document.getElementById('liveResultSummary').textContent = 'Analyzing frame on NVIDIA Cluster... (sub-second VLM inference)';
+
+      try {
+        const res = await fetch('/api/analyze_frame', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: b64 })
+        });
+        const data = await res.json();
+
+        document.getElementById('liveResultType').textContent = data.incident_type || 'INFERENCE COMPLETE';
+        document.getElementById('liveResultSource').textContent = data.source ? data.source.toUpperCase() : 'NVIDIA VLM';
+        document.getElementById('liveResultSummary').textContent = data.summary || 'Frame parsed successfully.';
+        document.getElementById('liveResultJson').textContent = JSON.stringify(data, null, 2);
+        playBeep(980, 0.15);
+      } catch (err) {
+        document.getElementById('liveResultSummary').textContent = 'Error processing frame.';
+      }
+    }
+
+    // Cluster Configuration Modal
+    document.getElementById('clusterConfigBtn').addEventListener('click', () => {
+      document.getElementById('clusterModal').showModal();
+    });
+
+    document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+      const url = document.getElementById('cfgNvidiaUrl').value;
+      const model = document.getElementById('cfgModel').value;
+      try {
+        const res = await fetch('/api/configure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nvidia_url: url, model: model })
+        });
+        const data = await res.json();
+        alert(data.connected ? '✅ Successfully linked to NVIDIA Cluster!' : '⚠️ Server saved, but NVIDIA URL is not reachable yet.');
+        document.getElementById('clusterModal').close();
+      } catch (e) {
+        alert('Configuration saved.');
+      }
+    });
+
+    // Start everything
+    initCameras();
+    updateTelemetry();
+  </script>
+</body>
+</html>

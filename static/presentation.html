@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EdgeVision // NVIDIA AI Hackathon Pitch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --nv-green: #76b900;
+      --nv-green-glow: rgba(118, 185, 0, 0.4);
+      --nv-green-dark: #4d7a00;
+      --bg-dark: #080b10;
+      --card-bg: rgba(16, 22, 34, 0.85);
+      --card-border: rgba(118, 185, 0, 0.22);
+      --card-border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --cyan: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* Ambient background grid */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(118, 185, 0, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.07) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Presentation Header */
+    .pres-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border-subtle);
+      background: rgba(8, 11, 16, 0.75);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--nv-green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--nv-green-glow);
+    }
+
+    .brand-logo svg {
+      width: 18px;
+      height: 18px;
+      fill: #000;
+    }
+
+    .brand-name {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: rgba(118, 185, 0, 0.15);
+      border: 1px solid rgba(118, 185, 0, 0.4);
+      color: var(--nv-green);
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .control-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+      background: rgba(118, 185, 0, 0.15);
+      border-color: var(--nv-green);
+      color: var(--nv-green);
+    }
+
+    /* Deck Viewport */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding-top: 60px;
+      padding-bottom: 50px;
+      z-index: 10;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 60px 0 50px 0;
+      padding: 40px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.97) translateY(12px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Slide Typography */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--nv-green);
+      margin-bottom: 14px;
+    }
+
+    .badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--nv-green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--nv-green);
+      display: inline-block;
+    }
+
+    .slide-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .slide-title span.highlight {
+      color: var(--nv-green);
+      text-shadow: 0 0 30px rgba(118, 185, 0, 0.3);
+    }
+
+    .slide-subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 860px;
+      line-height: 1.5;
+      margin-bottom: 30px;
+    }
+
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      width: 100%;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+      transition: border-color 0.25s, transform 0.25s;
+      backdrop-filter: blur(8px);
+    }
+
+    .card:hover {
+      border-color: var(--card-border);
+      transform: translateY(-2px);
+    }
+
+    .card.accent {
+      border-color: rgba(118, 185, 0, 0.4);
+      background: linear-gradient(145deg, rgba(16, 26, 38, 0.95), rgba(12, 18, 28, 0.9));
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+
+    .card.accent .card-icon {
+      background: rgba(118, 185, 0, 0.15);
+      border-color: rgba(118, 185, 0, 0.4);
+      color: var(--nv-green);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .metric-number {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--nv-green);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Comparison Table */
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--card-border-subtle);
+      background: var(--card-bg);
+      font-size: 14px;
+    }
+
+    .compare-table th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 16px 20px;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--card-border-subtle);
+    }
+
+    .compare-table th.highlight-col {
+      color: var(--nv-green);
+      background: rgba(118, 185, 0, 0.1);
+      border-bottom-color: rgba(118, 185, 0, 0.3);
+    }
+
+    .compare-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .compare-table td.highlight-col {
+      background: rgba(118, 185, 0, 0.05);
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .compare-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Architecture visual nodes */
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .arch-node {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .arch-node.highlight {
+      border-color: var(--nv-green);
+      box-shadow: 0 0 24px rgba(118, 185, 0, 0.15);
+      background: linear-gradient(180deg, rgba(16, 26, 38, 0.95), rgba(10, 14, 22, 0.95));
+    }
+
+    .arch-node h4 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--nv-green);
+      margin-bottom: 6px;
+    }
+
+    .arch-node p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .arch-arrow {
+      font-size: 20px;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    /* Footer Navigation */
+    .pres-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--card-border-subtle);
+      background: rgba(8, 11, 16, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .nav-hints {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+    }
+
+    .dots-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dot.active {
+      width: 28px;
+      border-radius: 5px;
+      background: var(--nv-green);
+      box-shadow: 0 0 10px var(--nv-green-glow);
+    }
+
+    .nav-arrows {
+      display: flex;
+      gap: 8px;
+    }
+
+    .arrow-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .arrow-btn:hover {
+      background: var(--nv-green);
+      color: #000;
+      border-color: var(--nv-green);
+    }
+
+    /* Presenter Notes Overlay */
+    .notes-drawer {
+      position: fixed;
+      bottom: 50px;
+      right: 32px;
+      width: 440px;
+      background: #0f172a;
+      border: 1px solid rgba(118, 185, 0, 0.4);
+      border-radius: 12px 12px 0 0;
+      padding: 20px;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+      transform: translateY(110%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 150;
+    }
+
+    .notes-drawer.open {
+      transform: translateY(0);
+    }
+
+    .notes-drawer h5 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--nv-green);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .notes-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    /* Print / PDF Mode */
+    @media print {
+      body {
+        overflow: visible;
+        height: auto;
+        background: #080b10 !important;
+        -webkit-print-color-adjust: exact;
+      }
+      .pres-header, .pres-footer, .notes-drawer {
+        display: none !important;
+      }
+      .deck-container {
+        padding: 0;
+        height: auto;
+      }
+      .slide {
+        position: relative !important;
+        inset: auto !important;
+        height: 100vh !important;
+        page-break-after: always !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        padding: 40px 60px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-bg"></div>
+
+  <!-- Top Header Bar -->
+  <header class="pres-header">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-name">EdgeVision</div>
+      <div class="brand-pill">NVIDIA AI HACKATHON</div>
+    </div>
+    <div class="header-controls">
+      <button class="control-btn" id="notesToggleBtn" onclick="toggleNotes()">
+        <span>📝 Speaker Script (N)</span>
+      </button>
+      <a href="/" class="control-btn" style="text-decoration:none;">
+        <span>🖥️ Live Dashboard</span>
+      </a>
+      <button class="control-btn" onclick="toggleFullScreen()">
+        <span>⛶ Fullscreen (F)</span>
+      </button>
+      <a href="/EdgeVision_Hackathon_Pitch.pptx" download class="control-btn" style="background: rgba(118, 185, 0, 0.15); border-color: var(--nv-green); color: var(--nv-green); text-decoration:none;">
+        <span>📥 Download PPTX</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Slide Deck Container -->
+  <main class="deck-container">
+
+    <!-- SLIDE 1: TITLE & HOOK -->
+    <section class="slide active" id="slide-1" data-notes="HOW TO SAY THIS (30s): Every hospital, warehouse, and factory has dozens of security cameras. Right now, human guards get tired and miss accidents, while streaming video to the cloud costs over $14,000 every month and chokes the internet. We built EdgeVision: smart vision AI running directly on local NVIDIA chips. It catches hazards in 1 second, costs $0 in cloud bills, and video never leaves the building.">
+      <div class="badge">NVIDIA AI HACKATHON // EDGE VISION</div>
+      <h1 class="slide-title">Smart Security for Every Camera,<br>Powered by <span class="highlight">NVIDIA AI</span></h1>
+      <p class="slide-subtitle">
+        Stops workplace accidents and break-ins in real time. Zero cloud fees. Zero slow internet. 100% private.
+      </p>
+
+      <div class="grid-4" style="margin-top: 10px;">
+        <div class="card accent">
+          <div class="metric-number">$0</div>
+          <div class="metric-sub">NO CLOUD FEES</div>
+          <p class="card-desc" style="margin-top:8px;">Runs locally. No monthly OpenAI or AWS bills.</p>
+        </div>
+        <div class="card">
+          <div class="metric-number">1 Second</div>
+          <div class="metric-sub">INSTANT ALERTS</div>
+          <p class="card-desc" style="margin-top:8px;">Catches danger and notifies staff immediately.</p>
+        </div>
+        <div class="card">
+          <div class="metric-number">All Cameras</div>
+          <div class="metric-sub">RUNS TOGETHER</div>
+          <p class="card-desc" style="margin-top:8px;">Spreads the camera workload across NVIDIA GPUs.</p>
+        </div>
+        <div class="card">
+          <div class="metric-number">100% Private</div>
+          <div class="metric-sub">SAFE & AIR-GAPPED</div>
+          <p class="card-desc" style="margin-top:8px;">Private video stays inside your building.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: THE PROBLEM -->
+    <section class="slide" id="slide-2" data-notes="HOW TO SAY THIS (40s): Right now, cameras are passive—they only record accidents after they happen. Why not use cloud AI? First, it costs $14,000 every month just in API fees. Second, continuous video chokes company internet connections. Third, hospitals and banks cannot legally send confidential footage to the cloud. And when humans watch screens, they miss 95% of events after 20 minutes.">
+      <div class="badge">THE PROBLEM // WHY SECURITY IS FAILING</div>
+      <h2 class="slide-title">Why Today's Security Cameras Are <span class="highlight">'Dumb'</span></h2>
+      <p class="slide-subtitle">
+        Companies have thousands of cameras, but they only record video for after something goes wrong.
+      </p>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon" style="color: var(--danger);">💸</div>
+          <h3 class="card-title">Way Too Expensive</h3>
+          <p class="card-desc">
+            Streaming 50 camera feeds to cloud AI costs over <strong>$14,000 every month</strong> ($170,000+/year) in token processing fees.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon" style="color: var(--warning);">🛑</div>
+          <h3 class="card-title">Chokes the Internet</h3>
+          <p class="card-desc">
+            Live video is heavy. Streaming dozens of cameras slows down the whole company network, causing lag and lost footage.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon" style="color: var(--cyan);">🔒</div>
+          <h3 class="card-title">Not Safe for Private Sites</h3>
+          <p class="card-desc">
+            Hospitals, factories, and banks <strong>cannot legally upload</strong> confidential security footage to outside cloud companies.
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; padding: 16px 24px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 14px; color: #fca5a5;"><strong>⚠️ The Human Guard Problem:</strong> Studies show security guards miss up to 95% of events on screens after watching monitors for just 20 minutes.</span>
+        <span style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#ef4444; font-weight:600;">HIGH ACCIDENT RISK</span>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: THE SOLUTION & ARCHITECTURE -->
+    <section class="slide" id="slide-3" data-notes="HOW TO SAY THIS (45s): Here is how simple EdgeVision is: It connects to standard cameras you already own. It grabs a picture every 1.5 seconds. Local NVIDIA chips analyze the scene using Vision AI. Our dashboard draws a box around the hazard, and sends an instant WhatsApp or Slack alert in under 1.2 seconds. Everything stays inside the building.">
+      <div class="badge">THE SOLUTION // HOW EDGEVISION WORKS</div>
+      <h2 class="slide-title">How EdgeVision <span class="highlight">Works</span></h2>
+      <p class="slide-subtitle">
+        We put smart Vision AI right on local NVIDIA graphics cards inside the building.
+      </p>
+
+      <div class="arch-flow">
+        <div class="arch-node">
+          <h4>1. YOUR CAMERAS</h4>
+          <p>Connects to any CCTV</p>
+          <span style="display:inline-block; font-size:10px; color:#64748b; margin-top:4px;">Standard Feeds</span>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <h4>2. SMART SAMPLER</h4>
+          <p>Checks every 1.5s</p>
+          <span style="display:inline-block; font-size:10px; color:#64748b; margin-top:4px;">No Network Lag</span>
+        </div>
+        <div class="arch-node highlight">
+          <h4>3. NVIDIA AI CHIP</h4>
+          <p>Vision AI Reasoning</p>
+          <span style="display:inline-block; font-size:10px; color:var(--nv-green); margin-top:4px;">100% Local Inference</span>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <h4>4. LIVE DASHBOARD</h4>
+          <p>Draws Hazard Box</p>
+          <span style="display:inline-block; font-size:10px; color:#64748b; margin-top:4px;">Gives Action Steps</span>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <h4>5. INSTANT ALERT</h4>
+          <p>WhatsApp / Slack / Horn</p>
+          <span style="display:inline-block; font-size:10px; color:#64748b; margin-top:4px;">&lt; 1.2s Response</span>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 16px;">
+        <div class="card" style="padding: 16px 20px;">
+          <h4 style="font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--nv-green); margin-bottom:6px;">⚡ Uses Multiple NVIDIA GPUs Together</h4>
+          <p class="card-desc">Splits feeds across cards: GPU 0 monitors active factory zones, while GPU 1 monitors fire doors and hallways. It runs cool and never slows down.</p>
+        </div>
+        <div class="card" style="padding: 16px 20px;">
+          <h4 style="font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--nv-green); margin-bottom:6px;">📋 Clear Action Steps, Not False Alarms</h4>
+          <p class="card-desc">Every alert tells the supervisor: What is wrong, where it happened, how urgent it is, and the exact action to take (e.g. 'Clean spill on Aisle 4').</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: MULTI-THREAT MATRIX -->
+    <section class="slide" id="slide-4" data-notes="HOW TO SAY THIS (45s): Older computer vision tools are fragile—you need one model for helmets, another for fire, another for people. With NVIDIA Vision LLMs, one model understands everything. Look at our 4 live examples: missing hard hat near a crane, stranger in the server room at 3 AM, slippery chemical puddle, and a blocked fire exit. Want to detect smoking tomorrow? Just type it in plain English!'>
+      <div class="badge">WHAT IT CATCHES // REAL SCENARIOS</div>
+      <h2 class="slide-title">One AI Model for <span class="highlight">Every Threat</span></h2>
+      <p class="slide-subtitle">
+        Old tools need a different model for each problem. EdgeVision understands everything using one model.
+      </p>
+
+      <div class="grid-4">
+        <div class="card" style="border-top: 3px solid var(--danger);">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--danger); font-weight:700;">CAM-01 // DANGER</div>
+          <h3 class="card-title" style="margin-top:6px; font-size:16px;">Missing Hard Hat</h3>
+          <p class="card-desc" style="font-size:13px;">Worker walking under heavy crane without a helmet. High safety risk.</p>
+          <div style="margin-top:12px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--nv-green);">Accuracy: 98.4%</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--danger);">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--danger); font-weight:700;">CAM-02 // DANGER</div>
+          <h3 class="card-title" style="margin-top:6px; font-size:16px;">Night Intruder</h3>
+          <p class="card-desc" style="font-size:13px;">Unknown person spotted inside restricted server vault at 3:14 AM.</p>
+          <div style="margin-top:12px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--nv-green);">Accuracy: 97.1%</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--warning);">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--warning); font-weight:700;">CAM-03 // WARNING</div>
+          <h3 class="card-title" style="margin-top:6px; font-size:16px;">Liquid Spill on Floor</h3>
+          <p class="card-desc" style="font-size:13px;">Chemical spill spreading near forklift lane. High slip and crash risk.</p>
+          <div style="margin-top:12px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--nv-green);">Accuracy: 94.2%</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--warning);">
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--warning); font-weight:700;">CAM-04 // WARNING</div>
+          <h3 class="card-title" style="margin-top:6px; font-size:16px;">Fire Exit Blocked</h3>
+          <p class="card-desc" style="font-size:13px;">Cardboard boxes piled up blocking the emergency exit door by 75%.</p>
+          <div style="margin-top:12px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--nv-green);">Accuracy: 96.3%</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 14px; color: var(--text-muted);">
+        💡 <strong>Super Easy to Customize:</strong> Want to spot people smoking or phone use on the job? Just tell the AI in plain English—no retraining required!
+      </div>
+    </section>
+
+    <!-- SLIDE 5: LIVE DEMO & COMPARISON -->
+    <section class="slide" id="slide-5" data-notes="HOW TO SAY THIS (45s): When judges ask how this compares to existing options, look at this table: Guards cost $12,000/month and miss accidents. Cloud AI costs $14,000/month, slows down the internet, and sends private video outside. EdgeVision costs $0 in monthly fees, reacts in 1 second, needs 0 internet, and is 100% private.">
+      <div class="badge">COMPARISON // WHY WE ARE BETTER</div>
+      <h2 class="slide-title">Why EdgeVision <span class="highlight">Beats the Rest</span></h2>
+      <p class="slide-subtitle">
+        A clear comparison against human security guards and cloud-based AI.
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>WHAT MATTERS</th>
+            <th>HUMAN SECURITY GUARDS</th>
+            <th>CLOUD AI (AWS / OPENAI)</th>
+            <th class="highlight-col">EDGEVISION (NVIDIA LOCAL)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Monthly Cost (50 Cams)</strong></td>
+            <td>$12,000+ (Staff wages)</td>
+            <td>$14,280+ (API + Data bills)</td>
+            <td class="highlight-col"><strong>$0 (Runs on local hardware)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Reaction Speed</strong></td>
+            <td>15 to 45 minutes late</td>
+            <td>4 to 6 seconds</td>
+            <td class="highlight-col"><strong>Under 1.2 seconds (Instant)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Internet Required</strong></td>
+            <td>None</td>
+            <td>Chokes your internet line</td>
+            <td class="highlight-col"><strong>0 internet needed (Offline)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Video Privacy</strong></td>
+            <td>Private</td>
+            <td>❌ Risky (Leaves the building)</td>
+            <td class="highlight-col"><strong>✅ 100% Private & Air-Gapped</strong></td>
+          </tr>
+          <tr>
+            <td><strong>What Happens on Danger</strong></td>
+            <td>Slow phone calls</td>
+            <td>Just sends an email</td>
+            <td class="highlight-col"><strong>Loud buzzer + Instant alert</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SLIDE 6: ROI & CALL TO ACTION -->
+    <section class="slide" id="slide-6" data-notes="HOW TO SAY THIS (30s): In summary, EdgeVision turns regular cameras into an autonomous safety center. It saves $170,000 every year in cloud bills for a typical 50-camera workplace, cuts accident response time to 1 second, and sets up in just 1 day. Now let's jump into our live demo!">
+      <div class="badge">THE VALUE // READY TODAY</div>
+      <h2 class="slide-title">Safer Workplaces. <span class="highlight">$170K Saved Every Year.</span></h2>
+      <p class="slide-subtitle">
+        Works immediately with the cameras and NVIDIA hardware companies already have.
+      </p>
+
+      <div class="grid-3" style="margin-bottom: 24px;">
+        <div class="card accent">
+          <div class="metric-number">Instant</div>
+          <div class="metric-sub">ACCIDENT PREVENTION</div>
+          <p class="card-desc" style="margin-top:8px;">Spots hazards before injuries happen, saving lives and avoiding fines.</p>
+        </div>
+        <div class="card">
+          <div class="metric-number">$171,000</div>
+          <div class="metric-sub">SAVED EVERY YEAR</div>
+          <p class="card-desc" style="margin-top:8px;">No recurring cloud fees for a standard 50-camera workplace.</p>
+        </div>
+        <div class="card">
+          <div class="metric-number">1 Day</div>
+          <div class="metric-sub">EASY SETUP</div>
+          <p class="card-desc" style="margin-top:8px;">Plugs directly into the cameras companies already own today.</p>
+        </div>
+      </div>
+
+      <div style="background: rgba(118, 185, 0, 0.1); border: 1px solid var(--nv-green); border-radius: 12px; padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 style="color:#fff; font-size:20px; font-weight:700;">🎯 Let's See the Live Demo!</h3>
+          <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">Our live camera matrix and NVIDIA cluster are running right now. Step in front of our webcam or pick any camera feed to watch EdgeVision detect hazards live.</p>
+        </div>
+        <a href="/" class="control-btn" style="background: var(--nv-green); color:#000; font-weight:700; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:14px; box-shadow:0 0 20px var(--nv-green-glow);">
+          LAUNCH LIVE DEMO ➔
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Presenter Notes Drawer -->
+  <aside class="notes-drawer" id="notesDrawer">
+    <h5>
+      <span>PRESENTER SCRIPT (PLAIN ENGLISH)</span>
+      <span style="cursor:pointer;" onclick="toggleNotes()">✕ CLOSE</span>
+    </h5>
+    <div class="notes-content" id="notesContent">
+      Loading script...
+    </div>
+  </aside>
+
+  <!-- Footer Controls -->
+  <footer class="pres-footer">
+    <div class="nav-hints">
+      <span><span class="key-badge">←</span> <span class="key-badge">→</span> Navigate</span>
+      <span><span class="key-badge">Space</span> Next</span>
+      <span><span class="key-badge">N</span> Notes</span>
+      <span><span class="key-badge">F</span> Fullscreen</span>
+    </div>
+
+    <div class="dots-container" id="dotsContainer"></div>
+
+    <div class="nav-arrows">
+      <button class="arrow-btn" onclick="prevSlide()" title="Previous slide">◀</button>
+      <button class="arrow-btn" onclick="nextSlide()" title="Next slide">▶</button>
+    </div>
+  </footer>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('dotsContainer');
+    const notesDrawer = document.getElementById('notesDrawer');
+    const notesContent = document.getElementById('notesContent');
+    let currentSlide = 0;
+
+    slides.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = `dot ${i === 0 ? 'active' : ''}`;
+      dot.addEventListener('click', () => goToSlide(i));
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.dot');
+
+    function updateSlide() {
+      slides.forEach((s, i) => {
+        s.classList.toggle('active', i === currentSlide);
+      });
+      dots.forEach((d, i) => {
+        d.classList.toggle('active', i === currentSlide);
+      });
+
+      const activeSlideEl = slides[currentSlide];
+      const notes = activeSlideEl.getAttribute('data-notes') || 'No notes for this slide.';
+      notesContent.innerHTML = notes;
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(index) {
+      if (index >= 0 && index < slides.length) {
+        currentSlide = index;
+        updateSlide();
+      }
+    }
+
+    function toggleNotes() {
+      notesDrawer.classList.toggle('open');
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        toggleNotes();
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullScreen();
+      }
+    });
+
+    updateSlide();
+  </script>
+</body>
+</html>
