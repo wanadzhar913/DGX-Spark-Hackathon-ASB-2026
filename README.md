@@ -1,7 +1,7 @@
 # Live Multi-Feed AI Video Monitoring (DGX Spark)
 
-A CCTV-style monitoring dashboard. It plays up to 4 looping video feeds, runs
-AI behavior analysis on each feed, and shows:
+A CCTV-style monitoring dashboard. It plays multiple looping video feeds (up
+to 9), runs AI behavior analysis on each feed, and shows:
 
 - a **video wall** (main area) with the live feeds,
 - a **right panel** listing crucial events (time, camera, type, confidence,
@@ -18,12 +18,44 @@ adapter for your real "omni" model on the DGX Spark.
 ├─────────────────────────────────────┼──────────────────┤
 │                                      │                  │
 │          VIDEO WALL                  │   CRUCIAL EVENTS │
-│      (1–4 looping feeds)             │   (live list)    │
+│      (1–9 looping feeds)             │   (live list)    │
 │                                      │                  │
 ├─────────────────────────────────────┤                  │
 │      EVENT SNAPSHOTS (thumbnails)    │                  │
 └─────────────────────────────────────┴──────────────────┘
 ```
+
+---
+
+## Screenshots
+
+> Drop your screenshot image files into `docs/screenshots/` with the exact
+> names below and they will render here on GitHub. (See
+> `docs/screenshots/README.md` for the expected files.)
+
+### Dashboard — full view
+
+The video wall, live event list, and snapshot strip together.
+
+![Dashboard full view](docs/screenshots/dashboard-full.png)
+
+### Video wall
+
+Multiple live feeds in a grid.
+
+![Video wall](docs/screenshots/video-wall.png)
+
+### Crucial events panel
+
+Live event list with colored severity badges and AI-generated descriptions.
+
+![Crucial events panel](docs/screenshots/events-panel.png)
+
+### Event snapshots
+
+Frame thumbnails showing where each event happened; click one to enlarge.
+
+![Event snapshots](docs/screenshots/snapshots.png)
 
 ---
 

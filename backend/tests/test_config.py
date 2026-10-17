@@ -67,7 +67,7 @@ def test_no_feeds_raises(tmp_path):
 def test_too_many_feeds_raises(tmp_path):
     feeds = "\n".join(
         f'  - id: cam-{i}\n    name: "C{i}"\n    source: "v{i}.mp4"'
-        for i in range(5)
+        for i in range(10)
     )
     bad = f"""
 feeds:
@@ -77,7 +77,7 @@ watchlist:
     description: "x"
     severity: low
 """
-    with pytest.raises(ConfigError, match="maximum of 4"):
+    with pytest.raises(ConfigError, match="maximum of 9"):
         load_config(_write(tmp_path, bad))
 
 

@@ -167,6 +167,27 @@ async def _mjpeg_generator(request: Request, feed_id: str):
         await asyncio.sleep(1 / 20.0)  # ~20 fps cap for the stream
 
 
+@app.get("/frame/{feed_id}")
+def frame(feed_id: str):
+    """Return a single current JPEG frame for a feed.
+
+    Used by the UI's polling-based video wall. Polling single frames (instead
+    of holding a long-lived MJPEG connection per feed) avoids exhausting the
+    browser's ~6 connections-per-host limit when many feeds are shown.
+    """
+    feed = state.feed_manager.get(feed_id)
+    if feed is None:
+        return JSONResponse({"error": "unknown feed"}, status_code=404)
+    jpeg = feed.latest_jpeg()
+    if not jpeg:
+        return JSONResponse({"error": "no frame yet"}, status_code=503)
+    return Response(
+        content=jpeg,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/stream/{feed_id}")
 async def stream(request: Request, feed_id: str):
     if state.feed_manager.get(feed_id) is None:

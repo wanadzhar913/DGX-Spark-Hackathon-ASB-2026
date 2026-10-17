@@ -79,8 +79,8 @@ class AppConfig(BaseModel):
     def _validate_feeds(cls, feeds: List[FeedConfig]) -> List[FeedConfig]:
         if not feeds:
             raise ValueError("at least one feed must be defined")
-        if len(feeds) > 4:
-            raise ValueError("a maximum of 4 feeds is supported")
+        if len(feeds) > 9:
+            raise ValueError("a maximum of 9 feeds is supported")
         ids = [f.id for f in feeds]
         if len(ids) != len(set(ids)):
             raise ValueError("feed ids must be unique")

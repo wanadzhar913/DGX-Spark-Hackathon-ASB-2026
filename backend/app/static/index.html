@@ -21,7 +21,7 @@
     color: var(--text);
     font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     display: grid;
-    grid-template-rows: 44px minmax(0, 1fr) 150px;
+    grid-template-rows: 44px minmax(0, 1fr) 190px;
     grid-template-columns: minmax(0, 1fr) 340px;
     grid-template-areas:
       "header header"
@@ -157,11 +157,11 @@
   #snaps .head { padding: 8px 14px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
   #snapStrip { display: flex; gap: 10px; overflow-x: auto; padding: 0 14px 12px; }
   .snap {
-    flex: 0 0 auto; width: 180px; border: 1px solid var(--border);
+    flex: 0 0 auto; width: 210px; border: 1px solid var(--border);
     border-radius: 6px; overflow: hidden; cursor: pointer; background: #000;
   }
   .snap.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  .snap img { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .snap img { width: 100%; height: 120px; object-fit: cover; display: block; }
   .snap .cap { padding: 5px 7px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
   .snap .cap .ts { color: var(--muted); margin-left: auto; }
   .scrim {
@@ -226,11 +226,29 @@ function renderWall() {
     tile.className = 'tile';
     tile.id = `tile-${f.id}`;
     tile.innerHTML = `
-      <img src="${API}/stream/${f.id}" alt="${f.name}" />
+      <img id="img-${f.id}" alt="${f.name}" />
       <span class="label">${f.name}</span>
       <span class="live">LIVE</span>`;
     wall.appendChild(tile);
   });
+  startFramePolling();
+}
+
+// Poll a single JPEG per feed on a timer instead of holding one long-lived
+// MJPEG connection per feed. This keeps us under the browser's ~6
+// connections-per-host limit, so every feed + the snapshots load reliably.
+let _pollTimer = null;
+function startFramePolling() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  const FPS = 8;                 // frames per second per feed
+  const refresh = () => {
+    state.feeds.forEach(f => {
+      const img = document.getElementById(`img-${f.id}`);
+      if (img) img.src = `${API}/frame/${f.id}?t=${Date.now()}`;
+    });
+  };
+  refresh();
+  _pollTimer = setInterval(refresh, 1000 / FPS);
 }
 
 function flashTile(cameraId, color) {
