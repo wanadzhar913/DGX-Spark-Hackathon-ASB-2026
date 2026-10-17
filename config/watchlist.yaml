@@ -69,8 +69,8 @@ analysis:
 model:
   # "mock"   -> MockOmniAdapter (fake but realistic events, no GPU needed)
   # "openai" -> OpenAICompatibleAdapter (plug in your DGX Spark omni endpoint)
-  adapter: "mock"
+  adapter: "openai"
   # Used only by the "openai" adapter. Point this at your local omni server.
-  base_url: "http://localhost:8000/v1"
+  base_url: "http://localhost:9001/v1"
   api_key: "not-needed-for-local"
   model_name: "omni"
