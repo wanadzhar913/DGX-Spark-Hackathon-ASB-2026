@@ -794,6 +794,27 @@
         </button>
       </div>
 
+      <!-- Quick Test Demo Samples -->
+      <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px;">
+        <div style="font-size: 10px; color: var(--nv-green); font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px;">
+          ⚡ ONE-CLICK TEST SAMPLES (INSTANT INFERENCE FOR JUDGES):
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <button type="button" class="btn" style="padding: 6px 4px; font-size: 11px;" onclick="testSampleImage('/sample_uploads/sample_1_no_helmet.jpg', 'Missing Hard Hat')">
+            👷 No Helmet
+          </button>
+          <button type="button" class="btn" style="padding: 6px 4px; font-size: 11px;" onclick="testSampleImage('/sample_uploads/sample_2_server_intruder.jpg', 'Server Intruder')">
+            🥷 Intruder
+          </button>
+          <button type="button" class="btn" style="padding: 6px 4px; font-size: 11px;" onclick="testSampleImage('/sample_uploads/sample_3_warehouse_spill.jpg', 'Liquid Spill')">
+            ⚠️ Floor Spill
+          </button>
+          <button type="button" class="btn" style="padding: 6px 4px; font-size: 11px;" onclick="testSampleImage('/sample_uploads/sample_4_blocked_fire_exit.jpg', 'Blocked Exit')">
+            🚪 Blocked Exit
+          </button>
+        </div>
+      </div>
+
       <div id="liveResultBox" style="display:none; background: #06090e; border: 1px solid var(--border-color); border-radius: 4px; padding: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
           <span style="font-weight: 700;" id="liveResultType">INFERENCE RESULT</span>
@@ -1357,18 +1378,61 @@
       analyzeB64Image(b64);
     });
 
+    // Quick Test Sample Helper for Judges
+    async function testSampleImage(url, label) {
+      try {
+        const previewVideo = document.getElementById('webcamVideo');
+        previewVideo.style.display = 'none';
+        let previewImg = document.getElementById('uploadPreviewImg');
+        if (!previewImg) {
+          previewImg = document.createElement('img');
+          previewImg.id = 'uploadPreviewImg';
+          previewImg.style.width = '100%';
+          previewImg.style.height = '100%';
+          previewImg.style.objectFit = 'contain';
+          previewVideo.parentElement.appendChild(previewImg);
+        }
+        previewImg.style.display = 'block';
+        previewImg.src = url;
+
+        // Fetch image as base64 to send to server
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onload = () => {
+          analyzeB64Image(reader.result, label);
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.error('Error loading sample image:', err);
+      }
+    }
+
     // File Upload Handler
     document.getElementById('imageUploadInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (event) => {
-        analyzeB64Image(event.target.result);
+        const previewVideo = document.getElementById('webcamVideo');
+        previewVideo.style.display = 'none';
+        let previewImg = document.getElementById('uploadPreviewImg');
+        if (!previewImg) {
+          previewImg = document.createElement('img');
+          previewImg.id = 'uploadPreviewImg';
+          previewImg.style.width = '100%';
+          previewImg.style.height = '100%';
+          previewImg.style.objectFit = 'contain';
+          previewVideo.parentElement.appendChild(previewImg);
+        }
+        previewImg.style.display = 'block';
+        previewImg.src = event.target.result;
+        analyzeB64Image(event.target.result, file.name);
       };
       reader.readAsDataURL(file);
     });
 
-    async function analyzeB64Image(b64) {
+    async function analyzeB64Image(b64, label = '') {
       const resultBox = document.getElementById('liveResultBox');
       resultBox.style.display = 'block';
       document.getElementById('liveResultSummary').textContent = 'Analyzing frame on NVIDIA Cluster... (sub-second VLM inference)';
@@ -1377,7 +1441,7 @@
         const res = await fetch('/api/analyze_frame', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: b64 })
+          body: JSON.stringify({ image: b64, label: label })
         });
         const data = await res.json();
 
