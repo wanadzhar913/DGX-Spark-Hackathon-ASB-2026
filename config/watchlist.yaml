@@ -1,0 +1,70 @@
+# =============================================================================
+# Watchlist & Feed configuration for the AI Video Monitoring system.
+#
+# - `feeds`      : the video sources shown on the wall (1-4 feeds). Each points
+#                  to a file inside the `videos/` folder.
+# - `watchlist`  : the behaviors the omni model should look for. The behavior
+#                  names + descriptions are passed to the model as the prompt,
+#                  and severity/color drive the UI badges in the right panel.
+# - `analysis`   : how often and how many frames we sample per feed.
+# - `model`      : which omni adapter to use ("mock" works out of the box).
+# =============================================================================
+
+feeds:
+  - id: cam-1
+    name: "Camera 1"
+    source: "videos/axcel-job_75d76ea54109.mp4"
+  - id: cam-2
+    name: "Camera 2"
+    source: "videos/axcel-job_8eb0b20d1655.mp4"
+  - id: cam-3
+    name: "Camera 3"
+    source: "videos/axcel-job_d227769f005c.mp4"
+  - id: cam-4
+    name: "Camera 4"
+    source: "videos/axcel-job_80757816d47d.mp4"
+
+# Behaviors the model watches for. `severity` maps to a color in the UI.
+# Allowed severities: low, medium, high, critical
+watchlist:
+  - type: "Loitering"
+    description: "A person remaining in one area for an extended period without clear purpose."
+    severity: medium
+  - type: "Intrusion"
+    description: "A person entering a restricted or off-limits area."
+    severity: high
+  - type: "Abandoned Object"
+    description: "A bag or object left unattended for a period of time."
+    severity: high
+  - type: "Vandalism"
+    description: "A person damaging, defacing, or tampering with property."
+    severity: critical
+  - type: "Fighting"
+    description: "Two or more people engaged in a physical altercation."
+    severity: critical
+  - type: "Fall Detected"
+    description: "A person collapsing or falling to the ground."
+    severity: high
+  - type: "Trespassing"
+    description: "A person climbing over a barrier or entering through an unauthorized point."
+    severity: high
+  - type: "Crowd Forming"
+    description: "An unusual gathering of multiple people in one place."
+    severity: low
+
+analysis:
+  # Seconds between analysis passes per feed.
+  interval_seconds: 4.0
+  # How many recent frames to send to the model as a short clip for context.
+  batch_size: 4
+  # Spacing (in captured frames) between the frames chosen for a batch.
+  batch_stride: 5
+
+model:
+  # "mock"   -> MockOmniAdapter (fake but realistic events, no GPU needed)
+  # "openai" -> OpenAICompatibleAdapter (plug in your DGX Spark omni endpoint)
+  adapter: "mock"
+  # Used only by the "openai" adapter. Point this at your local omni server.
+  base_url: "http://localhost:8000/v1"
+  api_key: "not-needed-for-local"
+  model_name: "omni"

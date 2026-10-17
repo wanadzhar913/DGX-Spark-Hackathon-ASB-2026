@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DGX Spark · Live AI Video Monitoring</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121820;
+    --panel-2: #1a222d;
+    --border: #243040;
+    --text: #e6edf3;
+    --muted: #8a97a6;
+    --accent: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    display: grid;
+    grid-template-rows: 44px minmax(0, 1fr) 150px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-areas:
+      "header header"
+      "wall   events"
+      "snaps  events";
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* On narrow screens, stack the events panel under the wall so nothing
+     gets pushed off-screen. */
+  @media (max-width: 900px) {
+    body {
+      grid-template-rows: 44px minmax(0, 1.4fr) minmax(0, 1fr) 140px;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "header"
+        "wall"
+        "events"
+        "snaps";
+    }
+    #events { border-left: none; border-top: 1px solid var(--border); }
+  }
+
+  header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #ef4444; box-shadow: 0 0 8px #ef4444;
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0; }
+  header .status { margin-left: auto; color: var(--muted); font-size: 12px; }
+  header .status b { color: var(--text); }
+
+  /* Video wall */
+  #wall {
+    grid-area: wall;
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden;
+    min-width: 0;   /* allow the wall to shrink instead of pushing siblings */
+    min-height: 0;
+  }
+  .tile {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 0;   /* critical: lets the img shrink inside the grid cell */
+    min-height: 0;
+  }
+  .tile img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;   /* keep aspect ratio; no stretching */
+    display: block;
+  }
+  .tile .label {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,.6); padding: 3px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 600; letter-spacing: .3px;
+  }
+  .tile .live {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,.6); padding: 3px 8px; border-radius: 4px;
+    font-size: 11px; color: #ff6b6b; font-weight: 700;
+  }
+  .tile .live::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: #ff4d4d; animation: pulse 1.4s infinite;
+  }
+  .tile.flash { animation: tileflash .8s ease-out; }
+  @keyframes tileflash {
+    0% { box-shadow: 0 0 0 2px var(--flash, #ef4444) inset; }
+    100% { box-shadow: 0 0 0 0 transparent inset; }
+  }
+
+  /* Right panel: events */
+  #events {
+    grid-area: events;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    min-width: 0; min-height: 0;
+  }
+  #events .head {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #events .head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  #events .head .count { font-size: 12px; color: var(--muted); }
+  #eventList { overflow-y: auto; flex: 1; }
+  .event {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; border-left: 3px solid transparent;
+  }
+  .event:hover { background: var(--panel-2); }
+  .event.selected { background: var(--panel-2); border-left-color: var(--accent); }
+  .event .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .badge {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; color: #0b0f14;
+    letter-spacing: .4px;
+  }
+  .event .type { font-weight: 600; }
+  .event .conf { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .event .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; }
+  .event .desc { margin-top: 5px; color: #cbd5e1; font-size: 13px; }
+  .empty { padding: 24px 14px; color: var(--muted); text-align: center; }
+
+  /* Bottom panel: snapshots */
+  #snaps {
+    grid-area: snaps;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  #snaps .head { padding: 8px 14px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  #snapStrip { display: flex; gap: 10px; overflow-x: auto; padding: 0 14px 12px; }
+  .snap {
+    flex: 0 0 auto; width: 180px; border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden; cursor: pointer; background: #000;
+  }
+  .snap.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .snap img { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .snap .cap { padding: 5px 7px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+  .snap .cap .ts { color: var(--muted); margin-left: auto; }
+  .scrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,.8);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .scrim.open { display: flex; }
+  .scrim img { max-width: 86vw; max-height: 86vh; border-radius: 8px; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+  <header>
+    <span class="dot"></span>
+    <h1>Live AI Video Monitoring</h1>
+    <span class="status" id="status">connecting…</span>
+  </header>
+
+  <main id="wall"></main>
+
+  <aside id="events">
+    <div class="head">
+      <h2>Crucial Events</h2>
+      <span class="count" id="eventCount">0</span>
+    </div>
+    <div id="eventList"><div class="empty">Waiting for events…</div></div>
+  </aside>
+
+  <section id="snaps">
+    <div class="head">Event Snapshots</div>
+    <div id="snapStrip"></div>
+  </section>
+
+  <div class="scrim" id="scrim"><img id="scrimImg" alt="snapshot" /></div>
+
+<script>
+const API = location.origin;
+const state = { feeds: [], events: [], selected: null, maxEvents: 100 };
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+async function loadConfig() {
+  const res = await fetch(`${API}/api/config`);
+  const cfg = await res.json();
+  state.feeds = cfg.feeds;
+  renderWall();
+}
+
+function renderWall() {
+  const wall = document.getElementById('wall');
+  const n = state.feeds.length;
+  // Choose a near-square grid: 1->1x1, 2->2x1, 3-4->2x2, 5-6->3x2, etc.
+  const cols = n <= 1 ? 1 : (n <= 4 ? 2 : 3);
+  const rows = Math.ceil(n / cols);
+  wall.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  wall.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+  wall.innerHTML = '';
+  state.feeds.forEach(f => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.id = `tile-${f.id}`;
+    tile.innerHTML = `
+      <img src="${API}/stream/${f.id}" alt="${f.name}" />
+      <span class="label">${f.name}</span>
+      <span class="live">LIVE</span>`;
+    wall.appendChild(tile);
+  });
+}
+
+function flashTile(cameraId, color) {
+  const tile = document.getElementById(`tile-${cameraId}`);
+  if (!tile) return;
+  tile.style.setProperty('--flash', color || '#ef4444');
+  tile.classList.remove('flash');
+  void tile.offsetWidth; // restart animation
+  tile.classList.add('flash');
+}
+
+function addEvent(ev) {
+  state.events.unshift(ev);
+  if (state.events.length > state.maxEvents) state.events.pop();
+  renderEvents();
+  renderSnaps();
+  flashTile(ev.camera_id, ev.color);
+}
+
+function renderEvents() {
+  const list = document.getElementById('eventList');
+  document.getElementById('eventCount').textContent = state.events.length;
+  if (!state.events.length) {
+    list.innerHTML = '<div class="empty">Waiting for events…</div>';
+    return;
+  }
+  list.innerHTML = '';
+  state.events.forEach(ev => {
+    const el = document.createElement('div');
+    el.className = 'event' + (state.selected === ev.id ? ' selected' : '');
+    el.onclick = () => selectEvent(ev.id);
+    el.innerHTML = `
+      <div class="row1">
+        <span class="badge" style="background:${ev.color}">${ev.severity}</span>
+        <span class="type">${ev.event_type}</span>
+        <span class="conf">${Math.round(ev.confidence * 100)}%</span>
+      </div>
+      <div class="meta"><span>${ev.camera_name}</span><span>·</span><span>${fmtTime(ev.timestamp)}</span></div>
+      <div class="desc">${ev.description || ''}</div>`;
+    list.appendChild(el);
+  });
+}
+
+function renderSnaps() {
+  const strip = document.getElementById('snapStrip');
+  strip.innerHTML = '';
+  state.events.filter(e => e.has_snapshot).forEach(ev => {
+    const el = document.createElement('div');
+    el.className = 'snap' + (state.selected === ev.id ? ' selected' : '');
+    el.id = `snap-${ev.id}`;
+    el.onclick = () => openSnap(ev.id);
+    el.innerHTML = `
+      <img src="${API}/snapshot/${ev.id}" alt="${ev.event_type}" />
+      <div class="cap">
+        <span class="badge" style="background:${ev.color}">${ev.severity}</span>
+        <span>${ev.event_type}</span>
+        <span class="ts">${fmtTime(ev.timestamp)}</span>
+      </div>`;
+    strip.appendChild(el);
+  });
+}
+
+function selectEvent(id) {
+  state.selected = id;
+  renderEvents();
+  renderSnaps();
+  const snap = document.getElementById(`snap-${id}`);
+  if (snap) snap.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+
+function openSnap(id) {
+  selectEvent(id);
+  const scrim = document.getElementById('scrim');
+  document.getElementById('scrimImg').src = `${API}/snapshot/${id}`;
+  scrim.classList.add('open');
+}
+document.getElementById('scrim').onclick = () =>
+  document.getElementById('scrim').classList.remove('open');
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/events`);
+  const status = document.getElementById('status');
+  ws.onopen = () => { status.innerHTML = 'live · <b>connected</b>'; };
+  ws.onclose = () => {
+    status.innerHTML = 'disconnected · retrying…';
+    setTimeout(connectWS, 2000);
+  };
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'backlog') {
+      state.events = (msg.events || []).slice(0, state.maxEvents);
+      renderEvents(); renderSnaps();
+    } else if (msg.type === 'event') {
+      addEvent(msg.event);
+    }
+  };
+}
+
+loadConfig().then(connectWS).catch(err => {
+  document.getElementById('status').textContent = 'backend unreachable';
+  console.error(err);
+});
+</script>
+</body>
+</html>
