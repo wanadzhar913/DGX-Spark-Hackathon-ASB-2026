@@ -10,9 +10,9 @@ Endpoints:
   WS   /ws/events            -> live event push
 
 Run (from the repo root):
-    uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
+    uvicorn backend.app.main:app --host 0.0.0.0 --port 8888
 or (from backend/):
-    uvicorn app.main:app --host 0.0.0.0 --port 8080
+    uvicorn app.main:app --host 0.0.0.0 --port 8888
 """
 
 from __future__ import annotations

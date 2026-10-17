@@ -73,10 +73,10 @@ backend\.venv\Scripts\python.exe scripts\make_sample_videos.py
 
 # 3. Run the server
 cd backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8080
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8888
 ```
 
-Then open **http://localhost:8080** in a browser. That's it — no npm, no build.
+Then open **http://localhost:8888** in a browser. That's it — no npm, no build.
 
 ---
 
@@ -118,17 +118,17 @@ generator needed if you already have footage.
 
 ```bash
 cd backend
-./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8080
+./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8888
 ```
 
 `--host 0.0.0.0` makes it reachable from other machines on the network.
 
 ### 5. Open the dashboard
 
-- **On the Spark itself (with a desktop/browser):** http://localhost:8080
+- **On the Spark itself (with a desktop/browser):** http://localhost:8888
 - **From your laptop on the same network:** find the Spark's IP with
   `hostname -I` (take the first address, e.g. `192.168.1.42`), then open
-  `http://192.168.1.42:8080` in your laptop's browser.
+  `http://192.168.1.42:8888` in your laptop's browser.
 
 > Note: `0.0.0.0` is the *bind* address, not something you type in a browser.
 > Always use `localhost`, `127.0.0.1`, or the Spark's real IP.
@@ -156,7 +156,7 @@ For a demo that survives your SSH session closing:
 ```bash
 # simplest: run in the background with a log file
 cd backend
-nohup ./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8080 \
+nohup ./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8888 \
   > ../server.log 2>&1 &
 
 # follow the log
@@ -170,7 +170,7 @@ To stop it later: `pkill -f "uvicorn app.main:app"`.
 | Symptom | Fix |
 |---------|-----|
 | `This site can't be reached` | You used `0.0.0.0` in the browser. Use `localhost` / the Spark IP. |
-| Can't reach it from your laptop | Server must bind `--host 0.0.0.0`; check the Spark's firewall allows port 8080. |
+| Can't reach it from your laptop | Server must bind `--host 0.0.0.0`; check the Spark's firewall allows port 8888. |
 | `libGL.so.1: cannot open` | `sudo apt-get install -y libgl1 libglib2.0-0` |
 | Port already in use | Pick another port, e.g. `--port 8090`. |
 | Feeds show "NO SIGNAL" | The `source:` path in the config doesn't match a file in `videos/`. |

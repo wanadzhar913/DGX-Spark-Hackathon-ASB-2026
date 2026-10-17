@@ -237,18 +237,31 @@ class OpenAICompatibleAdapter(OmniAdapter):
 
     def _parse(self, text, frames, watchlist, camera_id, camera_name) -> List[Event]:
         data = _loads_lenient(text)
-        if not data:
+        if not isinstance(data, dict):
+            return []
+        events = data.get("events") or []
+        if not isinstance(events, list):
             return []
         out: List[Event] = []
         snapshot = frames[-1]
-        for item in data.get("events", []):
-            watch = _watch_by_type(watchlist, item.get("type", ""))
+        for item in events:
+            if not isinstance(item, dict):
+                continue
+            watch = _watch_by_type(watchlist, item.get("type") or "")
             if watch is None:
                 continue
+            # The model may send null / missing fields; coerce safely so a
+            # single odd item never crashes the whole batch.
+            raw_desc = item.get("description")
+            description = str(raw_desc).strip() if raw_desc is not None else ""
+            try:
+                confidence = float(item.get("confidence") or 0.0)
+            except (TypeError, ValueError):
+                confidence = 0.0
             out.append(_make_event(
                 watch, camera_id, camera_name,
-                description=str(item.get("description", "")).strip(),
-                confidence=float(item.get("confidence", 0.0)),
+                description=description,
+                confidence=confidence,
                 snapshot=snapshot,
             ))
         return out

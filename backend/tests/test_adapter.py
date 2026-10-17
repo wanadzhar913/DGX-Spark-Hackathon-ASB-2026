@@ -114,6 +114,34 @@ def test_openai_parse_ignores_unknown_type():
     assert adapter._parse(text, _frames(), _watchlist(), "c", "C") == []
 
 
+def test_openai_parse_handles_null_and_missing_fields():
+    # Models sometimes return null/missing description or confidence. These
+    # must not crash the batch (regression for 'NoneType' .strip()).
+    adapter = OpenAICompatibleAdapter("http://x/v1", "k", "omni")
+    text = (
+        '{"events": ['
+        '{"type": "Fighting", "confidence": null, "description": null},'
+        '{"type": "Loitering"},'
+        '"not-an-object",'
+        '{"type": null}'
+        ']}'
+    )
+    events = adapter._parse(text, _frames(), _watchlist(), "cam-9", "Dock")
+    # The two valid known types survive; the junk entries are skipped.
+    assert len(events) == 2
+    types = {e.event_type for e in events}
+    assert types == {"Fighting", "Loitering"}
+    for e in events:
+        assert e.description == ""        # null/missing -> empty, not "None"
+        assert e.confidence == 0.0
+
+
+def test_openai_parse_non_dict_payload():
+    adapter = OpenAICompatibleAdapter("http://x/v1", "k", "omni")
+    assert adapter._parse("[1,2,3]", _frames(), _watchlist(), "c", "C") == []
+    assert adapter._parse('{"events": "nope"}', _frames(), _watchlist(), "c", "C") == []
+
+
 def test_loads_lenient_variants():
     assert _loads_lenient('{"events": []}') == {"events": []}
     assert _loads_lenient('prose {"events": []} more')["events"] == []
