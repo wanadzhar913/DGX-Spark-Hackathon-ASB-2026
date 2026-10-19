@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Server logs
+server.log
+
+# Office temp lock files
+~$*
